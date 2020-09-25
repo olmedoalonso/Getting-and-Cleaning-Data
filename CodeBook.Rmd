@@ -1,0 +1,90 @@
+---
+title: "CodeBook"
+author: "Olmedo Alonso Madrigales"
+date: "09/24/2020"
+output: html_document
+---
+
+## Data
+
+The data was provided  as a zipfile.  It was extracted under the folder *UCI HAR Dataset*. It consists of a set of data collected from the accelerometers from the Samsumg Galaxy S Smartphones.  A full description is available at the site beneath. 
+
+(http://archive.ics.uci.edu/ml/datasets/Human+Activity+Recognition+Using+Smartphones)
+
+## Variables
+
+             Variable Name                                            Description
+     x_test <- "X_test.txt"                 contains recorded features test data in 2947 rows, 561 columns
+     x_train <- "X_train.txt"               contains recorded features train data in 7352 rows, 561 columns
+     y_test <- "y_test.txt"                 contains test data of activities’code labels in 2947 rows, 1 columns
+     y_train <- "y_train.txt"               contains train data of activities’code labels in 7352 rows, 1 columns 
+     sub_test <- "subject_test.txt"         contains test data of 9 volunteer test subjects in 2947 rows, 1 column
+     sub_train <- "subject_train.txt"       contains train data of 21 volunteer subjects in 7352 rows, 1 column
+     features <- "features.txt"             from the accelerometer and gyroscope 3-axial signals in 561 rows, 2 cols
+     activities <- "activity_labels.txt"    activities with its corresponding measurements and its codes (labels)
+
+*At this level, it was not necessary to use the other files (Inertial Signals) that were in the unzip folder (*UCI HAR Dataset*) because they were not required by the assignment.*
+
+## Data Transformation
+
+### Package availability.
+
+Important to have the following packages available.
+
+    > library(dplyr)
+    > library(tidyr)
+    > library(httr)
+    > library(RCurl)
+    > library(data.table)
+    > library(knitr)
+
+### Steps
+
+The data had to be arranged in order to understand it.  So the steps developed are as follows:
+
+1. The datatables had to be merged together to have a compressed solid one.  So the following functions had to be applied and given them new names as follows.
+
+    New Variables Names       |       Function Used         |      Variable Name
+  ----------------------------|-----------------------------|-----------------------------
+         x_data               |          rbind()            |    x_test, x_train  
+         y_data               |          rbind()            |    y_test, y_train  
+         sub_data             |          rbind()            |    sub_test, sub_train
+       merged_data            |          cbind()            |    sub_data, y_data, x_data
+
+2. In order to achieve better data quality, I did assign the columns with variable names.  As follows.
+
+   + names(x_data)  <- features$V2
+   + names(y_data)  <- c("activity")
+   + names(sub_data)  <- c("subject")
+
+3. Extract only the measurements of the mean and std dev for each measurement.
+
+   + tidy_merged_data <- merged_data %>% select(subject, activity, contains("mean"), contains("std"))
+
+4. Use descriptive activity names to name the activities in the data set.
+
+   + tidy_merged_data$activity <- activities[tidy_merged_data_activity, 2]
+
+5. Appropriately labels the data set with descriptive variable names.
+
+   + names(tidy_merged_data)[1] = "Subject"
+   + names(tidy_merged_data)[2] = "Activity"
+   + names(tidy_merged_data) <- gsub("^t", "Time", names(tidy_merged_data))
+   + names(tidy_merged_data) <- gsub("^f", "Frequency", names(tidy_merged_data))
+   + names(tidy_merged_data) <- gsub("Acc", "Accelerometer", names(tidy_merged_data))
+   + names(tidy_merged_data) <- gsub("Gyro", "Gyroscope", names(tidy_merged_data))
+   + names(tidy_merged_data) <- gsub("Mag", "Magnitud", names(tidy_merged_data))
+   + names(tidy_merged_data) <- gsub("BodyBody", "Body", names(tidy_merged_data))
+   + names(tidy_merged_data) <- gsub("-mean", "Mean", names(tidy_merged_data))
+   + names(tidy_merged_data) <- gsub("-std", "STD", names(tidy_merged_data))
+   + names(tidy_merged_data) <- gsub("-freq", "Frecuency", names(tidy_merged_data))
+   + names(tidy_merged_data) <- gsub("angle", "Angle", names(tidy_merged_data))
+   + names(tidy_merged_data) <- gsub("gravity", "Gravity", names(tidy_merged_data)) 
+    
+6. From the data set in step 4, creates a second, independent tidy data set with the average of each variable for each activity and each subject
+
+   + tidy_merged_data_avg <- tidy_merged_data %>% group_by(Subject, Activity) %>% summarise_all(list(mean = mean))
+
+7. Save the new table. This allows me to keep the table locally and ready for sharing it to others.
+    
+   + tidy_merged_data_avg, "./Get&CleanDataAssignment/tidy_merged_data_avg.txt", row.names = FALSE)
